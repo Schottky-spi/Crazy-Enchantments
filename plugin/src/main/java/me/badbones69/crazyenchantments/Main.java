@@ -9,11 +9,13 @@ import me.badbones69.crazyenchantments.commands.*;
 import me.badbones69.crazyenchantments.controllers.*;
 import me.badbones69.crazyenchantments.enchantments.*;
 import me.badbones69.crazyenchantments.multisupport.Support.SupportedPlugins;
+import me.badbones69.crazyenchantments.multisupport.Version;
 import me.badbones69.crazyenchantments.multisupport.anticheats.AACSupport;
 import me.badbones69.premiumhooks.anticheat.DakataAntiCheatSupport;
 import me.badbones69.premiumhooks.spawners.SilkSpawnerSupport;
 import me.badbones69.premiumhooks.spawners.SilkSpawnersCandcSupport;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,13 +27,18 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class Main extends JavaPlugin implements Listener {
-    
-    private CrazyEnchantments ce = CrazyEnchantments.getInstance();
-    private FileManager fileManager = FileManager.getInstance();
+
+    private final CrazyEnchantments ce = CrazyEnchantments.getInstance();
+    private final FileManager fileManager = FileManager.getInstance();
     private boolean fixHealth;
-    
+
     @Override
     public void onEnable() {
+        if (!Version.getCurrentVersion().isSupported()) {
+            Bukkit.getConsoleSender().sendMessage(ChatColor.RED + String.format("The current version of %s only supports up to %s", getName(), Version.getLatestVersion()));
+            Bukkit.getConsoleSender().sendMessage(ChatColor.RED + "Contact the developer of this plugin to request an update");
+            return;
+        }
         fileManager.logInfo(true).setup(this);
         ce.load();
         SupportedPlugins.printHooks();
@@ -56,47 +63,47 @@ public class Main extends JavaPlugin implements Listener {
         getCommand("gkit").setTabCompleter(new GkitzTab());
         PluginManager pm = Bukkit.getServer().getPluginManager();
         //==========================================================================\\
-        pm.registerEvents(this, this);
-        pm.registerEvents(new ShopControl(), this);
-        pm.registerEvents(new InfoGUIControl(), this);
+        registerEvents(this,
+                new ShopControl(),
+                new InfoGUIControl(),
+                new LostBookController(),
+                new EnchantmentControl(),
+                new SignControl(),
+                new DustControl(),
+                new Tinkerer(),
+                new AuraListener(),
+                new ScrollControl(),
+                new BlackSmith(),
+                new ArmorListener(),
+                new ProtectionCrystal(),
+                new Scrambler(),
+                new CommandChecker(),
+                new FireworkDamage());
         if (ce.isGkitzEnabled()) {
-            pm.registerEvents(new GKitzController(), this);
+            registerEvents(new GKitzController());
         }
-        pm.registerEvents(new LostBookController(), this);
-        pm.registerEvents(new EnchantmentControl(), this);
-        pm.registerEvents(new SignControl(), this);
-        pm.registerEvents(new DustControl(), this);
-        pm.registerEvents(new Tinkerer(), this);
-        pm.registerEvents(new AuraListener(), this);
-        pm.registerEvents(new ScrollControl(), this);
-        pm.registerEvents(new BlackSmith(), this);
-        pm.registerEvents(new ArmorListener(), this);
-        pm.registerEvents(new ProtectionCrystal(), this);
-        pm.registerEvents(new Scrambler(), this);
-        pm.registerEvents(new CommandChecker(), this);
-        pm.registerEvents(new FireworkDamage(), this);
         //==========================================================================\\
-        pm.registerEvents(new Bows(), this);
-        pm.registerEvents(new Axes(), this);
-        pm.registerEvents(new Tools(), this);
-        pm.registerEvents(new Hoes(), this);
-        pm.registerEvents(new Helmets(), this);
-        pm.registerEvents(new PickAxes(), this);
-        pm.registerEvents(new Boots(), this);
-        pm.registerEvents(new Armor(), this);
-        pm.registerEvents(new Swords(), this);
-        pm.registerEvents(new AllyEnchantments(), this);
+        registerEvents(new Bows(),
+                new Axes(),
+                new Tools(),
+                new Hoes(),
+                new Helmets(),
+                new PickAxes(),
+                new Boots(),
+                new Armor(),
+                new Swords(),
+                new AllyEnchantments());
         if (SupportedPlugins.AAC.isPluginLoaded()) {
-            pm.registerEvents(new AACSupport(), this);
+            registerEvents(new AACSupport());
         }
         if (SupportedPlugins.SILK_SPAWNERS.isPluginLoaded()) {
-            pm.registerEvents(new SilkSpawnerSupport(), this);
+            registerEvents(new SilkSpawnerSupport());
         }
         if (SupportedPlugins.SILK_SPAWNERS_CANDC.isPluginLoaded()) {
-            pm.registerEvents(new SilkSpawnersCandcSupport(), this);
+            registerEvents(new SilkSpawnersCandcSupport());
         }
         if (SupportedPlugins.DAKATA.isPluginLoaded()) {
-            pm.registerEvents(new DakataAntiCheatSupport(), this);
+            registerEvents(new DakataAntiCheatSupport());
         }
         //==========================================================================\\
         new Metrics(this);// Starts up bStats
@@ -109,9 +116,19 @@ public class Main extends JavaPlugin implements Listener {
             }
         }.runTaskTimerAsynchronously(this, 5 * 20 * 60, 5 * 20 * 60);
     }
-    
+
+    private void registerEvents(Listener... listeners) {
+        final PluginManager manager = Bukkit.getPluginManager();
+        for (Listener listener: listeners) {
+            manager.registerEvents(listener, this);
+        }
+    }
+
     @Override
     public void onDisable() {
+        if (!Version.getCurrentVersion().isSupported()) {
+            return;
+        }
         if (ce.getAllyManager() != null) {
             ce.getAllyManager().forceRemoveAllies();
         }
@@ -119,7 +136,7 @@ public class Main extends JavaPlugin implements Listener {
             ce.unloadCEPlayer(player);
         }
     }
-    
+
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent e) {
         final Player player = e.getPlayer();
@@ -137,19 +154,19 @@ public class Main extends JavaPlugin implements Listener {
             public void run() {
                 if (player.getName().equals("BadBones69")) {
                     player.sendMessage(Methods.getPrefix() + Methods.color("&7This server is running your Crazy Enchantments Plugin. "
-                    + "&7It is running version &av" + ce.getPlugin().getDescription().getVersion() + "&7."));
+                            + "&7It is running version &av" + ce.getPlugin().getDescription().getVersion() + "&7."));
                 }
                 if (player.isOp()) {
                     Methods.hasUpdate(player);
                 }
             }
         }.
-        runTaskLaterAsynchronously(this, 20);
+                runTaskLaterAsynchronously(this, 20);
     }
-    
+
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent e) {
         ce.unloadCEPlayer(e.getPlayer());
     }
-    
+
 }
